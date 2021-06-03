@@ -1,0 +1,17 @@
+[package]
+name = "indexer"
+version = "0.1.0"
+authors = ["EnormousCloud <enormous@webcerebrium.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx = { version = "0.4.1", features = [ "chrono", "postgres", "runtime-async-std-rustls" ] }
+async-std = { version = "1.6", features = [ "attributes" ] }
+serde = { version = "1.0", features = ["derive"] }
+anyhow = { version = "1.0" }
+ureq = { version = "2.1", features = ["json", "charset"] }
+log = { version = "0.4" }
+chrono = { version = "0.4" }
+pico-args = { version = "0.4" }
