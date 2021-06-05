@@ -10,8 +10,10 @@ edition = "2018"
 sqlx = { version = "0.4.1", features = [ "chrono", "postgres", "runtime-async-std-rustls" ] }
 async-std = { version = "1.6", features = [ "attributes" ] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
 anyhow = { version = "1.0" }
 ureq = { version = "2.1", features = ["json", "charset"] }
+env_logger = { version = "0.8" }
 log = { version = "0.4" }
 chrono = { version = "0.4" }
 pico-args = { version = "0.4" }
