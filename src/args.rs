@@ -1,50 +1,29 @@
-#[derive(Debug, Clone)]
+use structopt::StructOpt;
+use crate::{Markets, Currencies};
+
+#[derive(Debug, StructOpt, Clone)]
+#[structopt(name = "fiatprices", about = "API to serve fiat prics of cryptocurrencies. Caches Coingecko so far")]
 pub struct Args {
-    pub markets: Vec<String>,
-    pub currencies: Vec<String>,
+    /// whether to index missing history
+    #[structopt(short, long, default_value="1")]
+    pub index: u32,
+    /// whether to start HTTP API server
+    #[structopt(short, long, default_value="1")]
+    pub server: u32,
+    #[structopt(long, default_value="ethereum,bitcoin", env="MARKETS")]
+    pub markets: Markets,
+    #[structopt(long, default_value="eur,usd,rub,cny,cad,jpy,gbp", env="CURRENCIES")]
+    pub currencies: Currencies,
+    #[structopt(short, long, default_value="postgres://postgres:password@localhost/fiatprices", env="DATABASE_URL")]
     pub database_url: String,
+    #[structopt(long, default_value="5", env="DATABASE_MAX_CONN")]
     pub database_conn: u32,
+    #[structopt(short, long, default_value="0.0.0.0:8080", env="LISTEN")]
+    pub addr: String,
 }
 
-const USAGE: &str = "\
-USAGE:
-    fiatprices [OPTIONS]
-FLAGS:
-  -h, --help            Prints help information
-OPTIONS:
-  --db-url     DB_URL   Postgres database URL
-  --db-maxconn NUMBER   max number of database connections
-";
-
-fn vec_str(input: Vec<&str>) -> Vec<String> {
-    let mut out: Vec<String> = vec![];
-    for &s in input.iter() {
-        out.push(String::from(s))
-    }
-    out
-}
-
-pub fn parse() -> Result<Args, pico_args::Error> {
-    let mut pargs = pico_args::Arguments::from_env();
-    // Help has a higher priority and should be handled separately.
-    if pargs.contains(["-h", "--help"]) {
-        print!("{}", USAGE);
-        std::process::exit(0);
-    }
-
-    let res = Args {
-        markets: vec_str(vec!["bitcoin", "ethereum"]),
-        currencies: vec_str(vec!["eur", "usd", "rub", "cny", "cad", "jpy", "gbp"]),
-        database_url: pargs
-            .value_from_str("--db-url")
-            .unwrap_or("postgres://postgres:password@localhost/fiatprices".to_owned()),
-        database_conn: pargs.value_from_str("--db-maxconn").unwrap_or(5),
-    };
-
-    // It's up to the caller what to do with the remaining arguments.
-    let remaining = pargs.finish();
-    if !remaining.is_empty() {
-        eprintln!("Warning: unused arguments left: {:?}.", remaining);
-    }
+pub fn parse() -> anyhow::Result<Args> {
+    let res =Args::from_args();
+    println!("{:?}", res);
     Ok(res)
 }

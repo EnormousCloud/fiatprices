@@ -1,8 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::pool::PoolConnection;
-use sqlx::Postgres;
-use std::collections::HashMap;
+use sqlx::{Row, Postgres};
+use std::collections::{HashMap, BTreeMap};
+use crate::Currencies;
+use bigdecimal::BigDecimal;
 
 pub fn get_table_name(market: &str) -> String {
     format!("price_{}", market)
@@ -11,7 +13,7 @@ pub fn get_table_name(market: &str) -> String {
 pub async fn create_table(
     conn: &mut PoolConnection<Postgres>,
     market: &str,
-    currencies: &Vec<String>,
+    currencies: &Currencies,
 ) -> Result<()> {
     let tbl = get_table_name(market);
     let mut currency_fields: Vec<String> = vec![];
@@ -20,7 +22,7 @@ pub async fn create_table(
     }
     let sql = format!(
         "create table if not exists {} (
-        ts timestamp without time zone not null, {}, primary key (ts))",
+        ts timestamptz not null, {}, primary key (ts))",
         tbl,
         currency_fields.join(", ")
     );
@@ -28,6 +30,58 @@ pub async fn create_table(
         panic!("sql create error {}", e);
     };
     Ok(())
+}
+
+pub async fn get_prices(
+    conn: &mut PoolConnection<Postgres>,
+    timestamp: DateTime<Utc>,
+    market: &str,
+    currencies: &Currencies,
+) -> BTreeMap<String, f64> {
+    let sql = format!(
+        "SELECT {} FROM {} WHERE ts >= $1 LIMIT 1",
+        currencies.as_vec().join(","),
+        get_table_name(market),
+    );
+    let row: sqlx::postgres::PgRow = match sqlx::query(sql.as_str())
+        .bind(timestamp)
+        .fetch_one(conn)
+        .await
+    {
+        Ok(x) => x,
+        Err(e) => {
+            panic!("sql prices has error {}", e);
+        }
+    };
+    let mut m = BTreeMap::new();
+    for currency in currencies.iter() {
+        let num: BigDecimal = row.get(currency.as_str());
+        let val: f64 = num.to_string().parse().unwrap_or(0.0);
+        m.insert(currency.to_string(), val);
+    }
+    m
+}
+
+pub async fn has_price(
+    conn: &mut PoolConnection<Postgres>,
+    timestamp: DateTime<Utc>,
+    market: &str,
+) -> bool {
+    let sql = format!(
+        "SELECT ts FROM {} WHERE ts = $1 LIMIT 1",
+        get_table_name(market),
+    );
+    let tsvec: Vec<DateTime<Utc>> = match sqlx::query_scalar(sql.as_str())
+        .bind(timestamp)
+        .fetch_all(conn)
+        .await
+    {
+        Ok(x) => x,
+        Err(e) => {
+            panic!("sql has error {}", e);
+        }
+    };
+    tsvec.len() > 0
 }
 
 pub async fn insert(
@@ -43,7 +97,7 @@ pub async fn insert(
         values.push(format!("{}", value));
     }
     let sql = format!(
-        "INSERT INTO {} (ts,{}) VALUES (?,{}) ON CONFLICT DO NOTHING",
+        "INSERT INTO {} (ts,{}) VALUES ($1,{}) ON CONFLICT DO NOTHING",
         get_table_name(market),
         fields.join(", "),
         values.join(", ")
@@ -55,6 +109,5 @@ pub async fn insert(
     {
         panic!("sql insert error {}", e);
     };
-
     Ok(())
 }
