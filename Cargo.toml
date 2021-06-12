@@ -20,3 +20,4 @@ structopt = { version = "0.3", default-features = false }
 tide = { version = "0.16" }
 regex = { version = "1.5" }
 bigdecimal = { version = "0.2" }
+cached = { version = "0.23" }

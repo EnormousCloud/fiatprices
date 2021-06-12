@@ -4,19 +4,27 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
 use ureq::{Agent, AgentBuilder};
+use cached::proc_macro::cached;
 
-pub fn current(markets: &Markets, currencies: &Currencies) -> Result<String> {
-    let url = format!(
-        "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies={}",
-        markets.as_vec().join("%2C"),
-        currencies.as_vec().join("%2C")
-    );
+#[cached(time=300)]
+pub fn cached_get(url: String) -> String {
     let agent: Agent = AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
         .build();
-    let response = agent.get(url.as_str()).call()?.into_string()?;
+    let response = match agent.get(url.as_str()).call() {
+        Ok(x) => x.into_string().unwrap_or("{}".to_owned()),
+        Err(_) => {"{}".to_owned()},
+    };
     log::warn!("current {}", response);
-    Ok(response)
+    response
+}
+
+pub fn current(markets: &Markets, currencies: &Currencies) -> String {
+    cached_get(format!(
+        "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies={}",
+        markets.as_vec().join("%2C"),
+        currencies.as_vec().join("%2C")
+    ))
 }
 
 #[derive(Clone, Debug, Deserialize)]

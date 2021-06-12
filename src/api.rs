@@ -15,7 +15,7 @@ pub async fn health(_: Request<State>) -> Result {
 
 pub async fn current(req: Request<State>) -> Result {
     let mut res = Response::new(200);
-    let val = fetch::current(&req.state().markets, &req.state().currencies)?;
+    let val = fetch::current(&req.state().markets, &req.state().currencies);
     res.set_body(val.as_str());
     Ok(res)
 }
