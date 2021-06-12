@@ -1,8 +1,8 @@
+pub mod api;
 pub mod args;
 pub mod db;
-pub mod fetch;
 pub mod exporter;
-pub mod api;
+pub mod fetch;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Markets(Vec<String>);
@@ -16,7 +16,7 @@ impl Markets {
     pub fn as_vec(&self) -> Vec<String> {
         self.0.clone()
     }
-    pub fn iter(&self) -> std::slice::Iter<'_, std::string::String, > {
+    pub fn iter(&self) -> std::slice::Iter<'_, std::string::String> {
         self.0.iter()
     }
 }
@@ -26,14 +26,16 @@ pub struct Currencies(Vec<String>);
 impl std::str::FromStr for Currencies {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Currencies(s.split(",").map(|x| x.trim().to_owned()).collect()))
+        Ok(Currencies(
+            s.split(",").map(|x| x.trim().to_owned()).collect(),
+        ))
     }
 }
 impl Currencies {
     pub fn as_vec(&self) -> Vec<String> {
         self.0.clone()
     }
-    pub fn iter(&self) -> std::slice::Iter<'_, std::string::String, > {
+    pub fn iter(&self) -> std::slice::Iter<'_, std::string::String> {
         self.0.iter()
     }
 }
@@ -43,6 +45,23 @@ pub struct State {
     pub db_pool: sqlx::Pool<sqlx::postgres::Postgres>,
     pub markets: Markets,
     pub currencies: Currencies,
+}
+
+use tide::{Middleware, Next, Request};
+
+// This is an example of middleware that keeps its own state and could
+// be provided as a third party crate
+#[derive(Default)]
+struct LogMiddleware {}
+
+#[tide::utils::async_trait]
+impl<State: Clone + Send + Sync + 'static> Middleware<State> for LogMiddleware {
+    async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> tide::Result {
+        // let path = req.url().path().to_owned();
+        // let method = req.method().to_string();
+        // println!("method={} path={}", method, path);
+        Ok(next.run(req).await)
+    }
 }
 
 #[async_std::main]
@@ -82,6 +101,8 @@ async fn main() -> Result<(), anyhow::Error> {
             currencies: args.currencies.clone(),
         };
         let mut app = tide::with_state(state);
+        app.with(LogMiddleware {});
+        // app.with(tide_tracing::TraceMiddleware::new());
         app.at("/api/health").get(api::health);
         app.at("/api/current").get(api::current);
         app.at("/api/:market/at/:date").get(api::history);

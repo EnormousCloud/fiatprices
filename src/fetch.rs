@@ -1,9 +1,9 @@
+use crate::{Currencies, Markets};
 use anyhow::Result;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
 use ureq::{Agent, AgentBuilder};
-use crate::{Markets, Currencies};
 
 pub fn current(markets: &Markets, currencies: &Currencies) -> Result<String> {
     let url = format!(

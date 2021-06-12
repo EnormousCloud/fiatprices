@@ -1,10 +1,10 @@
+use crate::Currencies;
 use anyhow::Result;
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use sqlx::pool::PoolConnection;
-use sqlx::{Row, Postgres};
-use std::collections::{HashMap, BTreeMap};
-use crate::Currencies;
-use bigdecimal::BigDecimal;
+use sqlx::{Postgres, Row};
+use std::collections::{BTreeMap, HashMap};
 
 pub fn get_table_name(market: &str) -> String {
     format!("price_{}", market)
