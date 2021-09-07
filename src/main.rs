@@ -18,7 +18,7 @@ impl Market {
         let parts: Vec<&str> = src.split(":").collect();
         let now = Utc::now();
         let start = NaiveDate::from_ymd(now.year(), 1, 1);
-        let (name, earliest) = if parts.len() == 0 {
+        let (name, earliest) = if parts.len() == 1 {
             (src.to_owned(), start)
         } else {
             let dt = match NaiveDate::parse_from_str(parts[1], "%Y-%m-%d") {
@@ -70,7 +70,9 @@ impl Currencies {
         self.0.iter()
     }
     pub fn as_map(&self) -> HashMap<String, f64> {
-        HashMap::new()
+        self.0.iter().map(|s| (s.clone(), -1f64))
+        .into_iter()
+        .collect()
     }
 }
 
@@ -135,13 +137,14 @@ async fn main() -> Result<(), anyhow::Error> {
             markets: args.markets.clone(),
             currencies: args.currencies.clone(),
         };
+        println!("Starting HTTP server {}", &args.addr);
         let mut app = tide::with_state(state);
         app.with(LogMiddleware {});
         // app.with(tide_tracing::TraceMiddleware::new());
         app.at("/api/health").get(api::health);
         app.at("/api/current").get(api::current);
         app.at("/api/:market/at/:date").get(api::history);
-        app.listen(args.addr.as_str()).await?;
+        app.listen(&args.addr).await?;
     }
     Ok(())
 }

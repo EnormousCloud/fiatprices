@@ -24,14 +24,14 @@ pub async fn update_history(
     currencies: &Currencies,
     no_gaps: bool,
 ) -> Result<()> {
-
     // creating table for each market
     // and fetchign missing history
     for market in markets.iter() {
+        let span = std::time::Instant::now();
         let mut days = 0;
         let now = Utc::now();
         let start = Utc.ymd(now.year(), now.month(), now.day());
-
+        println!("Market {}: updating history since {:?}", &market.name, market.earliest);
         loop {
             let dt = start + Duration::days(days);
             let earliest = Date::<Utc>::from_utc(market.earliest, Utc);
@@ -68,6 +68,7 @@ pub async fn update_history(
             task::sleep(std::time::Duration::from_secs(1)).await;
             days = days - 1;
         }
+        println!("Indexing of {} market took {:?}", &market.name, span.elapsed());
     }
     Ok(())
 }
