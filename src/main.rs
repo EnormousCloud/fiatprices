@@ -4,6 +4,36 @@ pub mod db;
 pub mod exporter;
 pub mod fetch;
 
+use chrono::{Datelike, NaiveDate, Utc};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Market {
+    pub name: String,
+    pub earliest: NaiveDate<Utc>,
+}
+
+impl Market {
+    pub fn new(src: &str) -> Self {
+        let parts = src.split(":");
+        let now = Utc::now();
+        let start = Utc.ymd(now.year(), 1, 1).and_hms(0, 0, 0);
+        let (name, earliest) = if parts.len() == 0 {
+            (src.to_owned(), start)
+        } else {
+            let dt = match NaiveDate::parse_from_str(parts[1], "%Y-%m-%d") {
+                Ok(x) => x,
+                Err(e) => start,
+            };
+            (parts[0].to_owned(), dt)
+        };
+        Self {
+            name,
+            earliest,
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Markets(Vec<String>);
 impl std::str::FromStr for Markets {

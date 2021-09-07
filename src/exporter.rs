@@ -14,7 +14,7 @@ pub async fn init(
     currencies: &Currencies,
 ) -> Result<()> {
     for market in markets.iter() {
-        db::create_table(conn, market.as_str(), currencies).await?;
+        db::create_table(conn, market.name.as_str(), currencies).await?;
     }
     Ok(())
 }
@@ -24,9 +24,6 @@ pub async fn update_history(
     markets: &Markets,
     currencies: &Currencies,
 ) -> Result<()> {
-    let mut earliest_map: HashMap<&str, DateTime<Utc>> = HashMap::new();
-    earliest_map.insert("ethereum", Utc.ymd(2015, 8, 1).and_hms(0, 0, 0));
-    earliest_map.insert("bitcoin", Utc.ymd(2013, 5, 1).and_hms(0, 0, 0));
 
     // creating table for each market
     // and fetchign missing history
@@ -34,29 +31,28 @@ pub async fn update_history(
         let mut days = 0;
         let now = Utc::now();
         let start = Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
-        let earliest = earliest_map.get(market.as_str()).unwrap();
 
         loop {
             let dt = start + Duration::days(days);
-            if dt < *earliest {
+            if dt < market.earliest {
                 break;
             }
 
             let y = dt.year();
             let m = dt.month();
             let d = dt.day();
-            if db::has_price(conn, dt, market).await {
+            if db::has_price(conn, dt, market.name).await {
                 days = days - 1;
                 continue;
             }
             log::info!(
                 "missing price for {}: {}-{:02}-{:02}",
-                market.as_str(),
+                market.name,
                 y,
                 m,
                 d
             );
-            if let Ok(prices) = fetch::history(market.as_str(), y, m, d, currencies) {
+            if let Ok(prices) = fetch::history(market.name.as_str(), y, m, d, currencies) {
                 db::insert(conn, dt, market, &prices).await?;
             };
             task::sleep(std::time::Duration::from_secs(1)).await;
