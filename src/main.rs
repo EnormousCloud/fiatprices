@@ -4,25 +4,26 @@ pub mod db;
 pub mod exporter;
 pub mod fetch;
 
+use std::collections::HashMap;
 use chrono::{Datelike, NaiveDate, Utc};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Market {
     pub name: String,
-    pub earliest: NaiveDate<Utc>,
+    pub earliest: NaiveDate,
 }
 
 impl Market {
     pub fn new(src: &str) -> Self {
-        let parts = src.split(":");
+        let parts: Vec<&str> = src.split(":").collect();
         let now = Utc::now();
-        let start = Utc.ymd(now.year(), 1, 1).and_hms(0, 0, 0);
+        let start = NaiveDate::from_ymd(now.year(), 1, 1);
         let (name, earliest) = if parts.len() == 0 {
             (src.to_owned(), start)
         } else {
             let dt = match NaiveDate::parse_from_str(parts[1], "%Y-%m-%d") {
                 Ok(x) => x,
-                Err(e) => start,
+                Err(_) => start,
             };
             (parts[0].to_owned(), dt)
         };
@@ -35,18 +36,18 @@ impl Market {
 
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Markets(Vec<String>);
+pub struct Markets(Vec<Market>);
 impl std::str::FromStr for Markets {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Markets(s.split(",").map(|x| x.trim().to_owned()).collect()))
+        Ok(Markets(s.split(",").map(|x| Market::new(x.trim())).collect()))
     }
 }
 impl Markets {
     pub fn as_vec(&self) -> Vec<String> {
-        self.0.clone()
+        self.0.iter().map(|x| x.name.clone()).collect()
     }
-    pub fn iter(&self) -> std::slice::Iter<'_, std::string::String> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Market> {
         self.0.iter()
     }
 }
@@ -67,6 +68,9 @@ impl Currencies {
     }
     pub fn iter(&self) -> std::slice::Iter<'_, std::string::String> {
         self.0.iter()
+    }
+    pub fn as_map(&self) -> HashMap<String, f64> {
+        HashMap::new()
     }
 }
 
@@ -122,7 +126,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     exporter::init(&mut conn, &args.markets, &args.currencies).await?;
     if args.index > 0 {
-        exporter::update_history(&mut conn, &args.markets, &args.currencies).await?;
+        let no_gaps = args.index > 1;
+        exporter::update_history(&mut conn, &args.markets, &args.currencies, no_gaps).await?;
     }
     if args.server > 0 {
         let state = State {
