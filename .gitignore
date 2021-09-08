@@ -10,4 +10,3 @@
 **/*.rs.bk
 
 *.gz
-run.sh

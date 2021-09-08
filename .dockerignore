@@ -1,2 +1,4 @@
 /target
 !/target/release/fiatprices
+run.sh
+*.sql.gz
