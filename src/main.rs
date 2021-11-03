@@ -4,6 +4,7 @@ pub mod db;
 pub mod exporter;
 pub mod fetch;
 pub mod telemetry;
+pub mod metrics;
 
 use tracing::info;
 use std::collections::HashMap;
@@ -142,6 +143,7 @@ async fn main() -> Result<(), anyhow::Error> {
         let mut app = tide::with_state(state);
         app.with(LogMiddleware {});
         app.with(telemetry::TraceMiddleware::new());
+        app.at("/metrics").get(api::metrics);
         app.at("/api/health").get(api::health);
         app.at("/api/current").get(api::current);
         app.at("/api/:market/at/:date").get(api::history);

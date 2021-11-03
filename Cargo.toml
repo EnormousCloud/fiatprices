@@ -16,7 +16,7 @@ anyhow = { version = "1.0" }
 dotenv = "0.15"
 ureq = { version = "2.1", features = ["json", "charset"] }
 env_logger = { version = "0.8" }
-log = { version = "0.4" }
+lazy_static = "^1.4"
 chrono = { version = "0.4" }
 structopt = { version = "0.3", default-features = false }
 tide = { version = "0.16", default-features = false, features = ["h1-server"] }
@@ -26,3 +26,4 @@ tracing-subscriber = { version = "0.2" }
 regex = { version = "1.5" }
 bigdecimal = { version = "0.2" }
 cached = { version = "0.23" }
+prometheus = { version = "0.13", default-features = false }
