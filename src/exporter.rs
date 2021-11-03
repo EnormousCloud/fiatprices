@@ -6,6 +6,7 @@ use chrono::prelude::*;
 use chrono::{Datelike, Duration, Utc};
 use sqlx::pool::PoolConnection;
 use sqlx::Postgres;
+use tracing::info;
 
 pub async fn init(
     conn: &mut PoolConnection<Postgres>,
@@ -47,7 +48,7 @@ pub async fn update_history(
                 days = days - 1;
                 continue;
             }
-            log::info!(
+            info!(
                 "missing price for {}: {}-{:02}-{:02}",
                 market.name.as_str(),
                 y,
@@ -68,7 +69,7 @@ pub async fn update_history(
             task::sleep(std::time::Duration::from_secs(1)).await;
             days = days - 1;
         }
-        println!("Indexing of {} market took {:?}", &market.name, span.elapsed());
+        info!("Indexing of {} market took {:?}", &market.name, span.elapsed());
     }
     Ok(())
 }

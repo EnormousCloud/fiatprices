@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 use ureq::{Agent, AgentBuilder};
 use cached::proc_macro::cached;
+use tracing::{info, warn};
 
 #[cached(time=300)]
 pub fn cached_get(url: String) -> String {
@@ -15,7 +16,6 @@ pub fn cached_get(url: String) -> String {
         Ok(x) => x.into_string().unwrap_or("{}".to_owned()),
         Err(_) => {"{}".to_owned()},
     };
-    log::warn!("current {}", response);
     response
 }
 
@@ -56,8 +56,8 @@ pub fn history(
     let response: HistoryResponse = match serde_json::from_str(result.as_str()) {
         Ok(x) => x,
         Err(e) => {
-            log::warn!("LAST RESPONSE: {}", result);
-            log::warn!("ERROR: {}", e);
+            warn!("LAST RESPONSE: {}", result);
+            warn!("ERROR: {}", e);
             return Err(anyhow::Error::from(e));
         }
     };

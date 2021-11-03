@@ -3,7 +3,9 @@ pub mod args;
 pub mod db;
 pub mod exporter;
 pub mod fetch;
+pub mod telemetry;
 
+use tracing::info;
 use std::collections::HashMap;
 use chrono::{Datelike, NaiveDate, Utc};
 
@@ -102,7 +104,6 @@ impl<State: Clone + Send + Sync + 'static> Middleware<State> for LogMiddleware {
 
 #[async_std::main]
 async fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
     let args = match args::parse() {
         Ok(x) => x,
         Err(e) => {
@@ -137,10 +138,10 @@ async fn main() -> Result<(), anyhow::Error> {
             markets: args.markets.clone(),
             currencies: args.currencies.clone(),
         };
-        println!("Starting HTTP server {}", &args.addr);
+        info!("Starting HTTP server {}", &args.addr);
         let mut app = tide::with_state(state);
         app.with(LogMiddleware {});
-        // app.with(tide_tracing::TraceMiddleware::new());
+        app.with(telemetry::TraceMiddleware::new());
         app.at("/api/health").get(api::health);
         app.at("/api/current").get(api::current);
         app.at("/api/:market/at/:date").get(api::history);

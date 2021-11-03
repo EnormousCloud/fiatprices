@@ -3,6 +3,7 @@ use chrono::prelude::*;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use std::collections::{BTreeMap, HashMap};
 use tide::{Body, Request, Response, Result};
+use tracing::info;
 
 pub async fn health(_: Request<State>) -> Result {
     let mut m: HashMap<&str, String> = HashMap::new();
@@ -47,7 +48,7 @@ pub async fn history(req: Request<State>) -> Result {
     let m = dt.month();
     let d = dt.day();
     let tm: DateTime<Utc> = Utc.ymd(y, m, d).and_hms(0, 0, 0);
-    log::info!("market={}, y={}, m={}, d={} dt={}", market, y, m, d, dt);
+    info!("market={}, y={}, m={}, d={} dt={}", market, y, m, d, dt);
 
     let db_pool = req.state().db_pool.clone();
     let mut conn = db_pool.acquire().await?;
