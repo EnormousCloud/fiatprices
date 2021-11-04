@@ -4,7 +4,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use std::collections::{BTreeMap, HashMap};
 use tide::http::mime;
 use tide::{Body, Request, Response, Result};
-use tracing::info;
+use tracing::{info, info_span};
 
 pub type CurrentMarkets = HashMap<String, HashMap<String, f64>>;
 
@@ -62,7 +62,7 @@ pub async fn history(req: Request<State>) -> Result {
     let m = dt.month();
     let d = dt.day();
     let tm: DateTime<Utc> = Utc.ymd(y, m, d).and_hms(0, 0, 0);
-    info!("market={}, y={}, m={}, d={} dt={}", market, y, m, d, dt);
+    info_span!("requested", y=%y, m=%m, d=%d, dt=%dt, market=%market).in_scope(|| info!("history"));
 
     let db_pool = req.state().db_pool.clone();
     let mut conn = db_pool.acquire().await?;

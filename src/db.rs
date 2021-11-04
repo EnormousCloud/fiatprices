@@ -26,7 +26,7 @@ pub async fn create_table(
         tbl,
         currency_fields.join(", ")
     );
-    if let Err(e) = sqlx::query(sql.as_str()).execute(conn).await {
+    if let Err(e) = sqlx::query(&sql).execute(conn).await {
         panic!("sql create error {}", e);
     };
     Ok(())
@@ -43,11 +43,7 @@ pub async fn get_prices(
         currencies.as_vec().join(","),
         get_table_name(market),
     );
-    let row: sqlx::postgres::PgRow = match sqlx::query(sql.as_str())
-        .bind(timestamp)
-        .fetch_one(conn)
-        .await
-    {
+    let row = match sqlx::query(&sql).bind(timestamp).fetch_one(conn).await {
         Ok(x) => x,
         Err(e) => {
             panic!("sql prices has error {}", e);
@@ -71,7 +67,7 @@ pub async fn has_price(
         "SELECT ts FROM {} WHERE ts = $1 LIMIT 1",
         get_table_name(market),
     );
-    let tsvec: Vec<DateTime<Utc>> = match sqlx::query_scalar(sql.as_str())
+    let tsvec: Vec<DateTime<Utc>> = match sqlx::query_scalar(&sql)
         .bind(timestamp)
         .fetch_all(conn)
         .await
@@ -102,11 +98,7 @@ pub async fn insert(
         fields.join(", "),
         values.join(", ")
     );
-    if let Err(e) = sqlx::query(sql.as_str())
-        .bind(timestamp)
-        .execute(conn)
-        .await
-    {
+    if let Err(e) = sqlx::query(&sql).bind(timestamp).execute(conn).await {
         panic!("sql insert error {}", e);
     };
     Ok(())

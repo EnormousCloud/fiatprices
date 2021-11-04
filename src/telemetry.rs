@@ -102,7 +102,11 @@ impl TraceMiddleware {
             response
         }
         .instrument(
-            info_span!("Request", rq = %rqid, m = %method, u = %path, ip = %ip, agent = %ua, geo = %geo),
+            if geo.len() > 0 {
+                info_span!("Request", rq = %rqid, m = %method, u = %path, ip = %ip, agent = %ua, geo = %geo)
+            } else {
+                info_span!("Request", rq = %rqid, m = %method, u = %path, ip = %ip, agent = %ua)
+            }
         )
         .await)
     }
