@@ -58,6 +58,39 @@ pub async fn get_prices(
     m
 }
 
+pub async fn get_prices_period(
+    conn: &mut PoolConnection<Postgres>,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    market: &str,
+    currencies: &Currencies,
+) -> BTreeMap<String, BTreeMap<String, f64>> {
+    let sql = format!(
+        "SELECT ts,{} FROM {} WHERE ts >= $1 AND ts <= $2",
+        currencies.as_vec().join(","),
+        get_table_name(market),
+    );
+    let rows = sqlx::query(&sql)
+        .bind(from)
+        .bind(to)
+        .fetch_all(conn)
+        .await
+        .expect("invalid sql");
+    let mut out = BTreeMap::new();
+    for row in rows {
+        let ts: DateTime<Utc> = row.get("ts");
+        let ymd = ts.format("%Y-%m-%d").to_string();
+        let mut m = BTreeMap::new();
+        for currency in currencies.iter() {
+            let num: BigDecimal = row.get(currency.as_str());
+            let val: f64 = num.to_string().parse().unwrap_or(0.0);
+            m.insert(currency.to_string(), val);
+        }
+        out.insert(ymd, m);
+    }
+    out
+}
+
 pub async fn has_price(
     conn: &mut PoolConnection<Postgres>,
     timestamp: DateTime<Utc>,
@@ -67,16 +100,11 @@ pub async fn has_price(
         "SELECT ts FROM {} WHERE ts = $1 LIMIT 1",
         get_table_name(market),
     );
-    let tsvec: Vec<DateTime<Utc>> = match sqlx::query_scalar(&sql)
+    let tsvec: Vec<DateTime<Utc>> = sqlx::query_scalar(&sql)
         .bind(timestamp)
         .fetch_all(conn)
         .await
-    {
-        Ok(x) => x,
-        Err(e) => {
-            panic!("sql has error {}", e);
-        }
-    };
+        .expect("invalid sql");
     tsvec.len() > 0
 }
 

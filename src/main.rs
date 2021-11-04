@@ -146,6 +146,7 @@ async fn main() -> Result<(), anyhow::Error> {
         app.at("/metrics").get(api::metrics);
         app.at("/api/health").get(api::health);
         app.at("/api/current").get(api::current);
+        app.at("/api/:market/from/:from/to/:to").get(api::period);
         app.at("/api/:market/at/:date").get(api::history);
         app.listen(&args.addr).await?;
     }

@@ -73,3 +73,40 @@ pub async fn history(req: Request<State>) -> Result {
     res.set_body(serde_json::to_string(&response)?);
     Ok(res)
 }
+
+pub async fn period(req: Request<State>) -> Result {
+    let market = req.param("market").unwrap_or("none");
+    let iso8601from = req.param("from").unwrap_or("none");
+    let from = match NaiveDate::parse_from_str(iso8601from, "%Y-%m-%d") {
+        Ok(x) => x,
+        Err(e) => {
+            let mut res = Response::new(400);
+            res.set_body(format!("from error: {:?}", e));
+            return Ok(res);
+        }
+    };
+    let tm_from: DateTime<Utc> = Utc
+        .ymd(from.year(), from.month(), from.day())
+        .and_hms(0, 0, 0);
+
+    let iso8601to = req.param("to").unwrap_or("none");
+    let to = match NaiveDate::parse_from_str(iso8601to, "%Y-%m-%d") {
+        Ok(x) => x,
+        Err(e) => {
+            let mut res = Response::new(400);
+            res.set_body(format!("to error; {:?}", e));
+            return Ok(res);
+        }
+    };
+    let tm_to: DateTime<Utc> = Utc.ymd(to.year(), to.month(), to.day()).and_hms(0, 0, 0);
+    info!("market={} from={} to={}", market, from, to);
+
+    let db_pool = req.state().db_pool.clone();
+    let mut conn = db_pool.acquire().await?;
+    let result =
+        db::get_prices_period(&mut conn, tm_from, tm_to, market, &req.state().currencies).await;
+
+    let mut res = Response::new(200);
+    res.set_body(serde_json::to_string(&result)?);
+    Ok(res)
+}
