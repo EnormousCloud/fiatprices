@@ -3,12 +3,12 @@ pub mod args;
 pub mod db;
 pub mod exporter;
 pub mod fetch;
-pub mod telemetry;
 pub mod metrics;
+pub mod telemetry;
 
-use tracing::info;
-use std::collections::HashMap;
 use chrono::{Datelike, NaiveDate, Utc};
+use std::collections::HashMap;
+use tracing::info;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Market {
@@ -30,20 +30,18 @@ impl Market {
             };
             (parts[0].to_owned(), dt)
         };
-        Self {
-            name,
-            earliest,
-        }
+        Self { name, earliest }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Markets(Vec<Market>);
 impl std::str::FromStr for Markets {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Markets(s.split(",").map(|x| Market::new(x.trim())).collect()))
+        Ok(Markets(
+            s.split(",").map(|x| Market::new(x.trim())).collect(),
+        ))
     }
 }
 impl Markets {
@@ -73,9 +71,11 @@ impl Currencies {
         self.0.iter()
     }
     pub fn as_map(&self) -> HashMap<String, f64> {
-        self.0.iter().map(|s| (s.clone(), -1f64))
-        .into_iter()
-        .collect()
+        self.0
+            .iter()
+            .map(|s| (s.clone(), -1f64))
+            .into_iter()
+            .collect()
     }
 }
 

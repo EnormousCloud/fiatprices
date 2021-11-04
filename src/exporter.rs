@@ -32,7 +32,10 @@ pub async fn update_history(
         let mut days = 0;
         let now = Utc::now();
         let start = Utc.ymd(now.year(), now.month(), now.day());
-        println!("Market {}: updating history since {:?}", &market.name, market.earliest);
+        println!(
+            "Market {}: updating history since {:?}",
+            &market.name, market.earliest
+        );
         loop {
             let dt = start + Duration::days(days);
             let earliest = Date::<Utc>::from_utc(market.earliest, Utc);
@@ -58,18 +61,22 @@ pub async fn update_history(
             match fetch::history(market.name.as_str(), y, m, d, currencies) {
                 Ok(prices) => {
                     db::insert(conn, timestamp, &market.name, &prices).await?;
-                },
+                }
                 Err(_) => {
                     if no_gaps {
                         let gaps_map = currencies.as_map();
                         db::insert(conn, timestamp, &market.name, &gaps_map).await?;
                     }
-                },
+                }
             };
             task::sleep(std::time::Duration::from_secs(1)).await;
             days = days - 1;
         }
-        info!("Indexing of {} market took {:?}", &market.name, span.elapsed());
+        info!(
+            "Indexing of {} market took {:?}",
+            &market.name,
+            span.elapsed()
+        );
     }
     Ok(())
 }

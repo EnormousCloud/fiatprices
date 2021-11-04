@@ -2,7 +2,6 @@ use crate::{Currencies, Markets};
 use structopt::StructOpt;
 use tracing_subscriber::prelude::*;
 
-
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "fiatprices",
@@ -38,13 +37,14 @@ pub struct Args {
 
 pub fn parse() -> anyhow::Result<Args> {
     let res = Args::from_args();
-    let log_level: String = std::env::var("LOG_LEVEL").unwrap_or("info,sqlx=warn".to_owned());
+    let log_level: String = std::env::var("RUST_LOG").unwrap_or("info,sqlx=warn".to_owned());
 
     let fmt_layer = tracing_subscriber::fmt::layer()
-        .without_time()
-        .with_ansi(false)
-        .with_level(false)
-        .with_target(false);
+        // .without_time()
+        // .with_ansi(false)
+        // .with_level(false)
+        // .with_target(false)
+        ;
     let filter_layer = tracing_subscriber::EnvFilter::try_from_default_env()
         .or_else(|_| tracing_subscriber::EnvFilter::try_new(&log_level))
         .unwrap();

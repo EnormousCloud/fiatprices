@@ -1,8 +1,8 @@
 use crate::{db, fetch, State};
 use chrono::prelude::*;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
-use tide::http::mime;
 use std::collections::{BTreeMap, HashMap};
+use tide::http::mime;
 use tide::{Body, Request, Response, Result};
 use tracing::info;
 
@@ -11,7 +11,7 @@ pub type CurrentMarkets = HashMap<String, HashMap<String, f64>>;
 pub async fn metrics(req: Request<State>) -> Result {
     let val = fetch::current(&req.state().markets, &req.state().currencies);
     let markets: CurrentMarkets = serde_json::from_str(&val)?;
-    
+
     let out = crate::metrics::output(markets);
     let mut res = Response::new(200);
     res.set_content_type(mime::PLAIN);

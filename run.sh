@@ -39,6 +39,6 @@ set -ex
 
 [[ "$1" == "publish" ]] && {
     docker build -t fiatprices .
-    docker save fiatprices | bzip2 | ssh $SSH_HOST 'bunzip2 | docker load'
-    ssh $SSH_HOST 'cd /opt/fiatprices; docker-compose up -d'
+    docker save fiatprices | bzip2 | ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $SSH_HOST 'bunzip2 | docker load'
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $SSH_HOST 'cd /opt/fiatprices; docker-compose up -d'
 }

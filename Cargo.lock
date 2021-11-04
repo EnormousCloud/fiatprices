@@ -801,6 +801,7 @@ dependencies = [
  "env_logger",
  "lazy_static",
  "prometheus",
+ "rand 0.8.3",
  "regex",
  "serde",
  "serde_json",

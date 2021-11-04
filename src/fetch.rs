@@ -1,20 +1,20 @@
 use crate::{Currencies, Markets};
 use anyhow::Result;
+use cached::proc_macro::cached;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
+use tracing::warn;
 use ureq::{Agent, AgentBuilder};
-use cached::proc_macro::cached;
-use tracing::{info, warn};
 
-#[cached(time=300)]
+#[cached(time = 300)]
 pub fn cached_get(url: String) -> String {
     let agent: Agent = AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
         .build();
     let response = match agent.get(url.as_str()).call() {
         Ok(x) => x.into_string().unwrap_or("{}".to_owned()),
-        Err(_) => {"{}".to_owned()},
+        Err(_) => "{}".to_owned(),
     };
     response
 }

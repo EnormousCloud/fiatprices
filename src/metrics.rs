@@ -7,7 +7,7 @@ pub fn output(src: CurrentMarkets) -> String {
     let encoder = TextEncoder::new();
     let labels = HashMap::new();
     let sr = Registry::new_custom(Some("fiatprices".to_string()), Some(labels)).unwrap();
-    
+
     for (market_name, market) in src {
         for (currency, value) in market {
             let gauge_opts = Opts::new("price", "price")
