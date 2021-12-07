@@ -4,7 +4,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use std::collections::{BTreeMap, HashMap};
 use tide::http::mime;
 use tide::{Body, Request, Response, Result};
-use tracing::{info, info_span};
+use tracing::{info, info_span, warn_span};
 
 pub type CurrentMarkets = HashMap<String, HashMap<String, f64>>;
 
@@ -47,9 +47,41 @@ impl HistoryResponse {
     }
 }
 
+fn internal_error(msg: &str) -> Result {
+    let mut res = Response::new(500);
+    let mut mm: HashMap<String, String> = HashMap::new();
+    mm.insert("error".to_string(), msg.to_string());
+    res.set_body(serde_json::to_string(&mm)?);
+    return Ok(res);
+}
+
 pub async fn history(req: Request<State>) -> Result {
     let market = req.param("market").unwrap_or("none");
     let iso8601 = req.param("date").unwrap_or("none");
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+
+    if iso8601 == today {
+        let val = fetch::current(&req.state().markets, &req.state().currencies);
+        let markets: BTreeMap<String, BTreeMap<String, f64>> = match serde_json::from_str(&val) {
+            Ok(x) => x,
+            Err(e) => {
+                warn_span!("parse_failure", e=%e, dt=%iso8601, market=%market)
+                    .in_scope(|| info!("current"));
+                return internal_error(&e.to_string());
+            }
+        };
+        let prices = match markets.get(market) {
+            Some(x) => x.clone(),
+            None => {
+                return internal_error("no such market");
+            }
+        };
+        let response = HistoryResponse::new(market, prices);
+        let mut res = Response::new(200);
+        res.set_body(serde_json::to_string(&response)?);
+        return Ok(res);
+    }
+
     let dt = match NaiveDate::parse_from_str(iso8601, "%Y-%m-%d") {
         Ok(x) => x,
         Err(e) => {
