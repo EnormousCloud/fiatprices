@@ -1,6 +1,7 @@
 use crate::{db, fetch, State};
 use chrono::prelude::*;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
 use tide::http::mime;
 use tide::{Body, Request, Response, Result};
@@ -89,6 +90,10 @@ pub async fn history(req: Request<State>) -> Result {
         let mut res = Response::new(200);
         res.set_body(serde_json::to_string(&response)?);
         return Ok(res);
+    }
+    if let Ordering::Less = today.cmp(&iso8601.to_string()) {
+        warn_span!("future", dt=%iso8601, market=%market).in_scope(|| info!("current"));
+        return input_error("no prices for future");
     }
 
     let dt = match NaiveDate::parse_from_str(iso8601, "%Y-%m-%d") {
