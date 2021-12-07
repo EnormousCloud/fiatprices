@@ -55,6 +55,14 @@ fn internal_error(msg: &str) -> Result {
     return Ok(res);
 }
 
+fn input_error(msg: &str) -> Result {
+    let mut res = Response::new(400);
+    let mut mm: HashMap<String, String> = HashMap::new();
+    mm.insert("error".to_string(), msg.to_string());
+    res.set_body(serde_json::to_string(&mm)?);
+    return Ok(res);
+}
+
 pub async fn history(req: Request<State>) -> Result {
     let market = req.param("market").unwrap_or("none");
     let iso8601 = req.param("date").unwrap_or("none");
@@ -73,7 +81,8 @@ pub async fn history(req: Request<State>) -> Result {
         let prices = match markets.get(market) {
             Some(x) => x.clone(),
             None => {
-                return internal_error("no such market");
+                warn_span!("no_market", dt=%iso8601, market=%market).in_scope(|| info!("current"));
+                return input_error("no such market");
             }
         };
         let response = HistoryResponse::new(market, prices);
@@ -84,11 +93,7 @@ pub async fn history(req: Request<State>) -> Result {
 
     let dt = match NaiveDate::parse_from_str(iso8601, "%Y-%m-%d") {
         Ok(x) => x,
-        Err(e) => {
-            let mut res = Response::new(400);
-            res.set_body(format!("{:?}", e));
-            return Ok(res);
-        }
+        Err(e) => return input_error(&format!("{:?}", e)),
     };
     let y = dt.year();
     let m = dt.month();
